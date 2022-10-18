@@ -20,6 +20,28 @@ library(Hmisc)
 ```
 
 # __Data Overview__: 
+The original dataset is from U.S. Small Business Administration (SBA), a governmental agency founded in 1953 to provide financial assistance to small enterprises in the U.S. credit market. The file contains 899,164 loan records from small businesses across the country and 27 variables. A detailed description of all variables can be found in Table 1. For the project, our primary research interests can be summarized into the following questions:
+
+1. How does the requested loan duration (***Term***), revolving line of credit (***RevLineCr***), and employee count (***NoEmp***) of a small business impact the amount of the approved SBA loan (***GrAppv***)?
+2. What are the different factors that impact the defaulting of a loan?
+
+In addition, there are complexities in the original dataset to be aware of:
+
+* Missing Values. Due to the large dataset, it is not uncommon to find missing values on some variables. Table 2 shows the count of missing values for all variables in the original file. For the scope of the current project, we will exclude loan records with missing values except for the variable, ***ChgOffDate***, which indicates a date when a loan is declared to be in default. Given the rigorous review procedure that banks have set in place, only a small portion of loans are expected to default. Therefore, loans in good standing or have been paid off won't indicate a date when the loan is declared to be in default (***ChgOffDate***).
+
+* Inconsistent Data Format. The following categorical variables contain values other than yes and no. Without further clarification from the original dataset, we will exclude loan records beyond the binary choices. 
+  + Revolving Line of Credit (***RevLineCr***)
+  + Business Status: New or Existing Businesses (***NewExist***)
+  + Business Locale: Rural or Urban (***UrbanRural***)
+  + LowDoc Loan Program (***LowDoc***)
+
+* Incorrect Data Type. The following variables that contain monetary values are represented as strings rather than numeric numbers in the original file. These variables will be converted to the numeric data type for our analysis. 
+  + SBA’s Guaranteed Amount of Approved Loan (***SBA_Appv***)
+  + Gross Amount of Loan Approved by Bank (***GrAppv***)
+  + Charged-off Amount (***ChgOffPrinGr***)
+  + Gross Amount Outstanding (***BalanceGross***)
+  + Amount Disbursed (***DisbursementGross***)
+  
 
 # __Primary Relationship of Interest__: 
 
