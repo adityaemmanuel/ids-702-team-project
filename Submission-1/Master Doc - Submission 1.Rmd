@@ -92,7 +92,6 @@ sbl$UrbanRural_fac <- factor(sbl$UrbanRural, levels = c("1","2"),
 ```
 
 
-
 # __Other Characteristics__
 
 
