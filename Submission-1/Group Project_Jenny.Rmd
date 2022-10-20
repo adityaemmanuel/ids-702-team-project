@@ -1,0 +1,305 @@
+---
+title: "Small Business Loan Exploratory Data Analysis"
+author: "Heather Qiu, Aditya John, Isha Singh, Jenny Shen"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE,warning = FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+#Clear environment and load libraries
+rm(list = ls())
+library(ISLR2)
+library(kableExtra)
+library(stargazer)
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(leaps)
+library(tidyverse)
+library(table1)
+library(Hmisc)
+library(openintro)
+library(lubridate)
+library(vtable)
+```
+
+# __Data Overview__
+The original dataset is from U.S. Small Business Administration (SBA), a governmental agency founded in 1953 to provide financial assistance to small enterprises in the U.S. credit market. The file contains 899,164 loan records from small businesses across the country and 27 variables. A detailed description of all variables can be found in Table 1. For the project, our primary research interests can be summarized into the following questions:
+
+1. How does the requested loan duration (***Term***), revolving line of credit (***RevLineCr***), and employee count (***NoEmp***) of a small business impact the amount of the approved SBA loan (***GrAppv***)?
+2. What are the different factors that impact the defaulting of a loan?
+
+In addition, there are complexities in the original dataset to be aware of:
+
+* Missing Values. Due to the large dataset, it is not uncommon to find missing values on some variables. Table 2 shows the count of missing values for all variables in the original file. For the scope of the current project, we will exclude loan records with missing values except for the variable, ***ChgOffDate***, which indicates a date when a loan is declared to be in default. Given the rigorous review procedure that banks have set in place, only a small portion of loans are expected to default. Therefore, loans in good standing or have been paid off won't indicate a date when the loan is declared to be in default (***ChgOffDate***).
+
+* Inconsistent Data Format. The following categorical variables contain values other than yes and no. Without further clarification from the original dataset, we will exclude loan records beyond the binary choices. 
+  + Revolving Line of Credit (***RevLineCr***)
+  + Business Status: New or Existing Businesses (***NewExist***)
+  + Business Locale: Rural or Urban (***UrbanRural***)
+  + LowDoc Loan Program (***LowDoc***)
+
+* Incorrect Data Type. The following variables that contain monetary values are represented as strings rather than numeric numbers in the original file. These variables will be converted to the numeric data type for our analysis. 
+  + SBA’s Guaranteed Amount of Approved Loan (***SBA_Appv***)
+  + Gross Amount of Loan Approved by Bank (***GrAppv***)
+  + Charged-off Amount (***ChgOffPrinGr***)
+  + Gross Amount Outstanding (***BalanceGross***)
+  + Amount Disbursed (***DisbursementGross***)
+
+# __Primary Relationship of Interest__ 
+
+For the first research question, we first look at the distribution of the response variable ***GrAppv_num*** From the histogram and the density plot (Figure1),the response variable doesn't look normal.After transforming the variable by applying natural log, the distribution of the ***GrAppv_num*** looks normal now.
+We then explore the relationship between ***GrAppv_num*** and each predictor. Using scatter plots for continuous/numeric predictors while apply boxplots for categorical predictors (Figure2 and Figure3 in the Appendix). From the plots, it is worth mentioning that the relationship between the response variable and predictors ***Term*** and ***NoEmp*** seem not linear. There are also some difference in mean for the gross amount of loan approved by bank vs revolving line of credit which shows the relation between ***GrAppv_num*** and ***RevLineCr_fac*** is worth considering. 
+
+
+Tables 4 through 7 and Figure4 in the Appendix present the descriptive statistics for our second research question. The key findings include:
+
+* Majority of the establishments applying for the small business loans are existing businesses that operate in urban settings. 
+* The default rate varies between states.California, New York, and Florida have the highest percentage of small businesses defaulting on their loans. 
+* 77% of small business loans in default occurred between the time period of 2005 and 2008, but this is likely due to the fact that about 76% of loans were distributed around the same time period. 
+
+```{r pri, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=5,fig.height=4,fig.align='center'}
+##Read into the original dataset
+sbl <- read.csv('/Users/jennyshen/Desktop/SBAnational.csv',header=T, na.strings=c(""," ","NA"))
+
+##Remove blank row or rows of binary variables that contain values other than yes and no
+sbl$NewExist[sbl$NewExist == 0] <- NA
+sbl$UrbanRural[sbl$UrbanRural == 0] <- NA
+sbl <- sbl[!is.na(sbl$RevLineCr) == TRUE ,]
+sbl <- sbl[!is.na(sbl$NewExist) == TRUE ,]
+sbl <- sbl[!is.na(sbl$UrbanRural) == TRUE ,]
+sbl <- sbl[!is.na(sbl$Name) == TRUE ,]
+sbl <- sbl[!is.na(sbl$City) == TRUE ,]
+sbl <- sbl[!is.na(sbl$State) == TRUE ,]
+sbl <- sbl[!is.na(sbl$Bank) == TRUE ,]
+sbl <- sbl[!is.na(sbl$BankState) == TRUE ,]
+sbl <- sbl[!is.na(sbl$LowDoc) == TRUE ,]
+sbl <- sbl[!is.na(sbl$DisbursementDate) == TRUE ,]
+sbl <- sbl[!is.na(sbl$DisbursementGross) == TRUE ,]
+sbl <- sbl[!is.na(sbl$MIS_Status) == TRUE ,]
+sbl <- subset(sbl, RevLineCr =="Y" | RevLineCr =="N")
+sbl <- subset(sbl, LowDoc =="Y" | LowDoc =="N")
+
+##Remove '$' sign and commas then convert to double in the money columns and store the values in new columns
+sbl$SBA_Appv_num <-str_replace_all(sbl$SBA_Appv,"[\\$,]","")%>% as.double()
+sbl$GrAppv_num <-str_replace_all(sbl$GrAppv,"[\\$,]","") %>% as.double()
+sbl$ChgOffPrinGr_num <-str_replace_all(sbl$ChgOffPrinGr,"[\\$,]","") %>% as.double()
+sbl$BalanceGross_num <-str_replace_all(sbl$BalanceGross,"[\\$,]","") %>% as.double()
+sbl$DisbursementGross_num <-str_replace_all(sbl$DisbursementGross,"[\\$,]","") %>% as.double()
+
+
+## Extract the year of disbursement from Disbursement Date
+sbl$Disbursement_Year <- year(as.Date(sbl$DisbursementDate,"%d-%b-%y"))
+
+##Factor Categorical Variables listed as numeric
+sbl$NewExist_fac <- factor(sbl$NewExist, levels = c("1","2"), 
+                        labels = c("Existing Business","New Business"))
+
+sbl$UrbanRural_fac <- factor(sbl$UrbanRural, levels = c("1","2"), 
+                        labels = c("Urban","Rural"))
+
+sbl$RevLineCr_fac <- as.factor(sbl$RevLineCr)
+```
+
+
+```{r  echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4, fig.align='center'}
+#types of variables
+#str(sbl) 
+```
+
+```{r  echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4, fig.align='center'}
+#Term  RevLineCr NoEmp
+vars <- c("Term", "RevLineCr_fac", "NoEmp","GrAppv_num")
+sbl_q1 <- sbl[vars]
+#summary(sbl_q1)
+st(sbl_q1)
+
+cat(text="Figure 1.Distribution of Gross Amount of Loan Approved by Bank")
+par(mfrow=c(1,2))
+h1 <- hist(sbl_q1$GrAppv_num,xlab="GrAppv_num",main="Distribution of GrAppv_num")
+xfit<-seq(min(sbl_q1$GrAppv_num),max(sbl_q1$GrAppv_num),length=40)
+yfit<-dnorm(xfit,mean=mean(sbl_q1$GrAppv_num),sd=sd(sbl_q1$GrAppv_num))
+yfit <- yfit*diff(h1$mids[1:2])*length(sbl_q1$GrAppv_num)
+lines(xfit, yfit, col="blue", lwd=2)
+#Since the distribution of `GrAppv_num` is not really normal, transform the variable by applying natural log.
+
+h2 <- hist(log(sbl_q1$GrAppv_num),xlab="Log GrAppv_num",main="Distribution of Log GrAppv_num")
+xfit<-seq(min(log(sbl_q1$GrAppv_num)),max(log(sbl_q1$GrAppv_num)),length=40)
+yfit<-dnorm(xfit,mean=mean(log(sbl_q1$GrAppv_num)),sd=sd(log(sbl_q1$GrAppv_num)))
+yfit <- yfit*diff(h2$mids[1:2])*length(log(sbl_q1$GrAppv_num))
+lines(xfit, yfit, col="blue", lwd=2)
+```
+
+# __Other Characteristics__
+For the first research question：
+
+* From the summary statistics, it can be observed that ***NoEmp*** is right-skewed. 
+* The majority of the loan term in months is shorter than 100 months. 
+* The proportion of whether the loan approved is a revolving line of credit is relatively equivalent (46.8% v.s. 53.2%).
+
+For the second research question:
+
+* From Table 4, we can observe that small businesses that create less amount of jobs generally have higher potential to default. 
+* Likewise, the more job retained by the company, the less likely the business will default. 
+* Almost all of the small business in this analysis involved in the LowDoc Loan Program. 
+
+
+# __Potential Challenges__
+
+
+
+\pagebreak
+
+# __Appendix__
+```{r appendix1, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=6,fig.height=6,fig.align='center'}
+
+#Code Book
+data_dict <- matrix(
+  c("LoanNr_ChkDgt","Name","City","State",
+    "Zip", "Bank", "BankState","NAICS", "ApprovalDate",
+    "ApprovalFY","Term","NoEmp","NewExist","CreateJob",
+    "RetainedJob","FranchiseCode","UrbanRural","RevLineCr",
+    "LowDoc","ChgOffDate","DisbursementDate","DisbursementGross",
+    "BalanceGross","MIS_Status","ChgOffPrinGr","GrAppv","SBA_Appv",
+    "Identifier Primary Key","Borrower Name","Borrower City",
+    "Borrower State","Borrower Zip Code","Bank Name",
+    "Bank State","North American Industry Classification System Code",
+    "Date SBA Commitment Issued","Fiscal Year of Commitment",
+    "Loan Term in Months","Number of Business Employees",
+    "1 = Existing Business, 2 = New Business, 0 = Undefined","Number of Jobs Created",
+    "Number of Jobs Retained","Franchise Code, (00000 or 00001) = No Franchise",
+    "1 = Urban, 2 = Rural, 0 = Undefined",
+    "Revolving Line of Credit: Y = Yes, N = No",
+    "LowDoc Loan Program: Y = Yes, N = No",
+    "The date when a loan is declared to be in default",
+    "Disbursement Date","Amount Disbursed","Gross Amount Outstanding",
+    "Loan Status Charged off = CHGOFF, Paid in Full =PIF",
+    "Charged-off Amount","Gross Amount of Loan Approved by Bank",
+    "SBA’s Guaranteed Amount of Approved Loan"),nrow=27,ncol=2)
+
+kable(data_dict,
+      col.names=c("Variable","Description"),
+      format="latex",
+      booktabs=T,
+      caption="Code Book") %>% 
+  kable_styling(position="center",latex_options = c("hold_position"))
+
+#Missing Value Overview
+MissingValues <- matrix(
+  c("LoanNr_ChkDgt","Name","City","State",
+    "Zip", "Bank", "BankState","NAICS", "ApprovalDate",
+    "ApprovalFY","Term","NoEmp","NewExist","CreateJob",
+    "RetainedJob","FranchiseCode","UrbanRural","RevLineCr",
+    "LowDoc","ChgOffDate","DisbursementDate","DisbursementGross",
+    "BalanceGross","MIS_Status","ChgOffPrinGr","GrAppv","SBA_Appv",
+    "0","8","30","14","0","1559","1566","0","0","0","0","0","136",
+    "0","0","0","0","4528","2582","736465","2368","0","0","1997",
+    "0","0","0"),
+  nrow=27,ncol=2)
+
+kable(MissingValues,
+      col.names=c("Variable","Count of Missing Values"),
+      format="latex",
+      booktabs=T,
+      caption="Missing Value Overview") %>% 
+  kable_styling(position="center",latex_options = c("hold_position"))
+
+##EDA for Research Question #1
+cat("\n\n\\pagebreak\n")
+cat(text="Figure 2.Scatter Plot of Gross Amount of Loan Approved by Bank and Loan term in months/Number of business employees ")
+#`GrAppv_num` and `Term`.
+a <- ggplot(sbl_q1,aes(x=Term, y=GrAppv_num)) +
+  geom_point(alpha = .5,colour="blue4") +
+  geom_smooth(method="lm",col="red3") + theme_classic() +
+  labs(title="GrAppv_num vs Term",x="Term",y="GrAppv_num")
+
+#`log(GrAppv_num)` and `Term`.
+b <- ggplot(sbl_q1,aes(x=Term, y=log(GrAppv_num))) +
+  geom_point(alpha = .5,colour="blue4") +
+  geom_smooth(method="lm",col="red3") + theme_classic() +
+  labs(title="log(GrAppv_num) vs Term",x="Term",y="log(GrAppv_num)")
+
+#`GrAppv_num` and `NoEmp`.
+c <- ggplot(sbl_q1,aes(x=NoEmp, y=GrAppv_num)) +
+  geom_point(alpha = .5,colour="blue4") +
+  geom_smooth(method="lm",col="red3") + theme_classic() +
+  labs(title="GrAppv_num vs NoEmp",x="NoEmp",y="GrAppv_num")
+
+#`log(GrAppv_num)` and `NoEmp`.
+d <- ggplot(sbl_q1,aes(x=NoEmp, y=log(GrAppv_num))) +
+  geom_point(alpha = .5,colour="blue4") +
+  geom_smooth(method="lm",col="red3") + theme_classic() +
+  labs(title="log(GrAppv_num) vs NoEmp",x="NoEmp",y="log(GrAppv_num)")
+
+library(grid)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2, 2)))
+vplayout <- function(x, y) viewport(layout.pos.row = x, layout.pos.col = y)
+print(a, vp = vplayout(1, 1))  # key is to define vplayout
+print(b, vp = vplayout(1, 2))
+print(c, vp = vplayout(2, 1))
+print(d, vp = vplayout(2, 2))
+```
+
+```{r appendix2, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4,fig.align='center'}
+cat("\n\n\\pagebreak\n")
+cat(text="Figure 3.Comparison of Revolving Line of Credit in the Gross Amount of Loan Approved by Bank")
+par(mfrow=c(1,2))
+#`GrAppv_num` and `RevLineCr_fac`.
+e <- boxplot(GrAppv_num~RevLineCr_fac,data=sbl_q1, main="GrAppv_num vs RevLineCr_fac", ylab="GrAppv_num",xlab="RevLineCr_fac",col=rainbow(15))
+
+#`log(GrAppv_num)` and `RevLineCr_fac`.
+f <- boxplot(log(GrAppv_num)~RevLineCr_fac,data=sbl_q1, main="log(GrAppv_num) vs RevLineCr_fac", ylab="log(GrAppv_num)",xlab="RevLineCr_fac",col=rainbow(15))
+
+##EDA for Research Question #2
+cat("\n\n\\pagebreak\n")
+cat(text="Table 4.Descriptive of Small Business Loans by Loan Status (I)")
+table1(~Term+NoEmp+NewExist_fac+CreateJob+
+    RetainedJob+UrbanRural_fac+RevLineCr+LowDoc
+    +SBA_Appv_num+GrAppv_num+ChgOffPrinGr_num+BalanceGross_num
+    +DisbursementGross_num|MIS_Status,
+       data=sbl)
+
+cat("\n\n\\pagebreak\n")
+cat(text="Table 5.Descriptive of Small Business Loans by Loan Status (II)")
+table1(~State|MIS_Status,data=sbl)
+
+cat("\n\n\\pagebreak\n")
+cat(text="Figure 4.Default Rate of Loan by States in Continental US")
+us_states <- map_data("state")
+sbl_state <- sbl %>% 
+  mutate(State=tolower(abbr2state(State))) %>%
+  group_by(State) %>%
+  dplyr::summarize(Default_Rate = (sum((MIS_Status) == "CHGOFF")/ n()),na.rm=TRUE)
+
+us_states %>% 
+  left_join(sbl_state, by=c("region"="State")) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Default_Rate)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis", breaks = c(0.10, 0.17, 0.24, 0.31, 0.38))+
+  labs(title = "Default Rate of Loan by States in Continental US",
+       fill = "Default Rate") +
+  theme(legend.position="right",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
+
+cat("\n\n\\pagebreak\n")
+cat(text="Table 6.Descriptive of Small Business Loans by Loan Status (III)")
+table1(~ApprovalFY|MIS_Status,data=sbl)
+
+cat("\n\n\\pagebreak\n")
+cat(text="Table 7.Descriptive of Small Business Loans by Loan Status (IV)")
+table1(~factor(Disbursement_Year)|MIS_Status,data=sbl)
+```
+
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
