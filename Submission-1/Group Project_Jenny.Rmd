@@ -180,7 +180,7 @@ data_dict <- matrix(
 
 kable(data_dict,
       col.names=c("Variable","Description"),
-      format="latex",
+      format="html",
       booktabs=T,
       caption="Code Book") %>% 
   kable_styling(position="center",latex_options = c("hold_position"))
@@ -200,7 +200,7 @@ MissingValues <- matrix(
 
 kable(MissingValues,
       col.names=c("Variable","Count of Missing Values"),
-      format="latex",
+      format="html",
       booktabs=T,
       caption="Missing Value Overview") %>% 
   kable_styling(position="center",latex_options = c("hold_position"))
