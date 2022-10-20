@@ -2,7 +2,9 @@
 title: "Small Business Loan Exploratory Data Analysis"
 author: "Heather Qiu, Aditya John, Isha Singh, Jenny Shen"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE,warning = FALSE, message=FALSE}
@@ -22,6 +24,8 @@ library(Hmisc)
 library(openintro)
 library(lubridate)
 library(vtable)
+library(maps)
+library(mapproj)
 ```
 
 # __Data Overview__
@@ -32,7 +36,7 @@ The original dataset is from U.S. Small Business Administration (SBA), a governm
 
 In addition, there are complexities in the original dataset to be aware of:
 
-* Missing Values. Due to the large dataset, it is not uncommon to find missing values on some variables. Table 2 shows the count of missing values for all variables in the original file. For the scope of the current project, we will exclude loan records with missing values except for the variable, ***ChgOffDate***, which indicates a date when a loan is declared to be in default. Given the rigorous review procedure that banks have set in place, only a small portion of loans are expected to default. Therefore, loans in good standing or have been paid off won't indicate a date when the loan is declared to be in default (***ChgOffDate***).
+* Missing Values. Given the size of the dataset, it is not uncommon to find missing values on some variables. Table 2 shows the count of missing values for all variables in the original file. For the scope of the current project, we will exclude loan records with missing values except for the variable, ***ChgOffDate***, which indicates a date when a loan is declared to be in default. Given the rigorous review procedure that banks have set in place, only a small portion of loans are expected to default. Therefore, loans in good standing or have been paid off won't indicate a date when the loan is declared to be in default (***ChgOffDate***).
 
 * Inconsistent Data Format. The following categorical variables contain values other than yes and no. Without further clarification from the original dataset, we will exclude loan records beyond the binary choices. 
   + Revolving Line of Credit (***RevLineCr***)
@@ -47,21 +51,21 @@ In addition, there are complexities in the original dataset to be aware of:
   + Gross Amount Outstanding (***BalanceGross***)
   + Amount Disbursed (***DisbursementGross***)
 
+* Data Distribution. For the following variables, the distribution is not normal but instead skewed to either the left or the right. In addition, there are also significant outliers which need to be handled by either transformations or exclusions from the dataset prior to modelling. Categorical variables have factor imbalances i.e. more occurence of one factor as compared to the others. 
+  + Gross Amount of Loan Approved by Bank (***GrAppv***)
+  + Number of Business Employees (***NoEmp***)
+  + Urban/Rural Columns (***UrbanRurac_fac***)
+  
+  
 # __Primary Relationship of Interest__ 
 
 For the first research question, we first look at the distribution of the response variable ***GrAppv_num*** From the histogram and the density plot (Figure1),the response variable doesn't look normal.After transforming the variable by applying natural log, the distribution of the ***GrAppv_num*** looks normal now.
 We then explore the relationship between ***GrAppv_num*** and each predictor. Using scatter plots for continuous/numeric predictors while apply boxplots for categorical predictors (Figure2 and Figure3 in the Appendix). From the plots, it is worth mentioning that the relationship between the response variable and predictors ***Term*** and ***NoEmp*** seem not linear. There are also some difference in mean for the gross amount of loan approved by bank vs revolving line of credit which shows the relation between ***GrAppv_num*** and ***RevLineCr_fac*** is worth considering. 
 
 
-Tables 4 through 7 and Figure4 in the Appendix present the descriptive statistics for our second research question. The key findings include:
-
-* Majority of the establishments applying for the small business loans are existing businesses that operate in urban settings. 
-* The default rate varies between states.California, New York, and Florida have the highest percentage of small businesses defaulting on their loans. 
-* 77% of small business loans in default occurred between the time period of 2005 and 2008, but this is likely due to the fact that about 76% of loans were distributed around the same time period. 
-
 ```{r pri, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=5,fig.height=4,fig.align='center'}
 ##Read into the original dataset
-sbl <- read.csv('/Users/jennyshen/Desktop/SBAnational.csv',header=T, na.strings=c(""," ","NA"))
+sbl <- read.csv('SBAnational.csv',header=T, na.strings=c(""," ","NA"))
 
 ##Remove blank row or rows of binary variables that contain values other than yes and no
 sbl$NewExist[sbl$NewExist == 0] <- NA
@@ -102,6 +106,12 @@ sbl$UrbanRural_fac <- factor(sbl$UrbanRural, levels = c("1","2"),
 sbl$RevLineCr_fac <- as.factor(sbl$RevLineCr)
 ```
 
+For the second research question, Tables 4 through 7 and Figure 4 in the Appendix present the descriptive statistics. The key findings include:
+
+* Majority of the establishments applying for the small business loans are existing businesses that operate in urban settings. 
+* The default rate varies between states.California, New York, and Florida have the highest percentage of small businesses defaulting on their loans. 
+* 77% of small business loans in default occurred between the time period of 2005 and 2008, but this is likely due to the fact that about 76% of loans were distributed around the same time period. 
+
 
 ```{r  echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4, fig.align='center'}
 #types of variables
@@ -136,17 +146,25 @@ For the first research question：
 
 * From the summary statistics, it can be observed that ***NoEmp*** is right-skewed. 
 * The majority of the loan term in months is shorter than 100 months. 
-* The proportion of whether the loan approved is a revolving line of credit is relatively equivalent (46.8% v.s. 53.2%).
+* The proportion of whether the loan is approve or not, depends almost equally (46.8% v.s. 53.2%) on whether the business has a revolving line of credit. 
 
 For the second research question:
 
 * From Table 4, we can observe that small businesses that create less amount of jobs generally have higher potential to default. 
-* Likewise, the more job retained by the company, the less likely the business will default. 
-* Almost all of the small business in this analysis involved in the LowDoc Loan Program. 
+* Likewise, the more jobs retained by the company, the less likely the business will default. 
+* Almost all of the small business in this analysis are not involved in the LowDoc Loan Program. 
 
 
 # __Potential Challenges__
 
+ 
+
+The following are the challenges identified when performing EDA on the dataset. 
+
+1.	The first challenge is the exclusion of loan records values beyond the binary (Y/N) choices that were showing up within the variable. The reason for that was there was lack of information about what the different values represent. And so by applying restrictions to only include Y/N values, there is a potential loss of information. 
+2.	The second challenge is that there are variables that are in line with the outcome variable, balance gross, MIS status and charge off amount. These variables have to excluded from the analysis as they are all bi-variate outcomes. 
+3.	The data was too large causing inefficiency. 
+4.	Due to the data not being as clean as it should have been, it kind of resulted it to becoming deleted. If we had found an easier way rather than removing, the data would have been more consistent. 
 
 
 \pagebreak
