@@ -161,7 +161,7 @@ For the second research question:
 The following are the challenges identified when performing EDA on the dataset. 
 
 1.	The first challenge is the exclusion of loan record values beyond the binary (Y/N) choices that were showing up within binary variables. The reason for exclusion is that we lack information about what the different values represent. By retaining only Y/N values, we face the challenge of information loss. 
-2.	The second challenge is that a handful of variables are in line with the outcome variable, balance gross, MIS status, and charge-off amount. These variables have to be excluded from the analysis as they are all bi-variate outcomes. 
+2.	The second challenge is that a handful of variables are in line with the outcome variable, balance gross and charge-off amount. These variables have to be excluded from the analysis as they are all bi-variate outcomes. 
 3.	The dataset was too large, causing runtime inefficiency in R. 
 4.	Due to the uncleaned data, we had to remove empty values and data that did not make sense in context. If we could have talked to the original data collector, our analysis would likely be more comprehensive.
 
