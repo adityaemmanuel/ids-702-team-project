@@ -316,6 +316,6 @@ table1(~factor(Disbursement_Year)|MIS_Status,data=sbl)
 ```
 
 
-```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```{r ref.label=knitr::all_labels(), echo=FALSE, eval=FALSE}
 ```
 
