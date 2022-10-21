@@ -28,7 +28,8 @@ library(maps)
 library(mapproj)
 ```
 
-# __Data Overview__
+## __Data Overview__
+
 The original dataset is from U.S. Small Business Administration (SBA), a governmental agency founded in 1953 to provide financial assistance to small enterprises in the U.S. credit market. The file contains 899,164 loan records from small businesses across the country and 27 variables. A detailed description of all variables can be found in Table 1. For the project, our primary research interests can be summarized into the following questions:
 
 1. How does the requested loan duration (***Term***), revolving line of credit (***RevLineCr***), and employee count (***NoEmp***) of a small business impact the amount of the approved SBA loan (***GrAppv***)?
@@ -51,17 +52,17 @@ In addition, there are complexities in the original dataset to be aware of:
   + Gross Amount Outstanding (***BalanceGross***)
   + Amount Disbursed (***DisbursementGross***)
 
-* Data Distribution. For the following variables, the distribution is not normal but instead skewed to either the left or the right. In addition, there are also significant outliers which need to be handled by either transformations or exclusions from the dataset prior to modelling. Categorical variables have factor imbalances i.e. more occurence of one factor as compared to the others. 
+* Data Distribution. For the following variables, the distribution is skewed to either the left or the right. In addition, there are significant outliers that require attention. Their impact can be minimized by either performing data transformations or merely excluding these data points from the file before modeling. Categorical variables have factor imbalances (i.e., more occurrences of one factor compared to the rest). 
   + Gross Amount of Loan Approved by Bank (***GrAppv***)
   + Number of Business Employees (***NoEmp***)
   + Urban/Rural Columns (***UrbanRurac_fac***)
   
   
-# __Primary Relationship of Interest__ 
+## __Primary Relationship of Interest__ 
 
-For the first research question, we first look at the distribution of the response variable ***GrAppv_num*** From the histogram and the density plot (Figure1),the response variable doesn't look normal.After transforming the variable by applying natural log, the distribution of the ***GrAppv_num*** looks normal now.
-We then explore the relationship between ***GrAppv_num*** and each predictor. Using scatter plots for continuous/numeric predictors while apply boxplots for categorical predictors (Figure2 and Figure3 in the Appendix). From the plots, it is worth mentioning that the relationship between the response variable and predictors ***Term*** and ***NoEmp*** seem not linear. There are also some difference in mean for the gross amount of loan approved by bank vs revolving line of credit which shows the relation between ***GrAppv_num*** and ***RevLineCr_fac*** is worth considering. 
+For research question number one, we first looked at the distribution of the response variable ***GrAppv_num***. According to the histogram and the density plot (Figure1), the response variable is not normally distributed. After transforming the variable by applying the natural log, the distribution of the ***GrAppv_num*** looks normal now.
 
+We then explored the relationship between ***GrAppv_num*** and each predictor. We applied scatter plots to continuous/numeric predictors while using boxplots to explore the categorical predictors (Figure2 and Figure3 in the Appendix). The graphs indicate a non-linear relationship between the response variable and predictors ***Term*** and ***NoEmp***. There are also differences in mean for the gross amount of loan approved by bank vs. revolving line of credit, which shows the relation between ***GrAppv_num*** and ***RevLineCr_fac*** is worth considering. 
 
 ```{r pri, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=5,fig.height=4,fig.align='center'}
 ##Read into the original dataset
@@ -106,12 +107,11 @@ sbl$UrbanRural_fac <- factor(sbl$UrbanRural, levels = c("1","2"),
 sbl$RevLineCr_fac <- as.factor(sbl$RevLineCr)
 ```
 
-For the second research question, Tables 4 through 7 and Figure 4 in the Appendix present the descriptive statistics. The key findings include:
+For the second research question, Tables 4 through 7 and Figure 4 in the Appendix present the descriptive statistics. We have summarized the key findings below:
 
-* Majority of the establishments applying for the small business loans are existing businesses that operate in urban settings. 
-* The default rate varies between states.California, New York, and Florida have the highest percentage of small businesses defaulting on their loans. 
-* 77% of small business loans in default occurred between the time period of 2005 and 2008, but this is likely due to the fact that about 76% of loans were distributed around the same time period. 
-
+* Majority of the establishments applying for small business loans are existing businesses that operate in urban settings. 
+* The default rate varies between states. California, New York, and Florida have the highest percentage of small businesses defaulting on their loans. 
+* 77% of small business loans in default occurred between 2005 and 2008. However,  this is likely because about 76% of loans were distributed around the same time. 
 
 ```{r  echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4, fig.align='center'}
 #types of variables
@@ -141,31 +141,29 @@ yfit <- yfit*diff(h2$mids[1:2])*length(log(sbl_q1$GrAppv_num))
 lines(xfit, yfit, col="blue", lwd=2)
 ```
 
-# __Other Characteristics__
+## __Other Characteristics__
+
 For the first research question：
 
-* From the summary statistics, it can be observed that ***NoEmp*** is right-skewed. 
-* The majority of the loan term in months is shorter than 100 months. 
-* The proportion of whether the loan is approve or not, depends almost equally (46.8% v.s. 53.2%) on whether the business has a revolving line of credit. 
+* From the summary statistics, it is observed that ***NoEmp*** is right-skewed. 
+* Most loan terms in months are shorter than 100 months. 
+* The ratio of whether the loan is approved depends almost equally (46.8% v.s. 53.2%) on whether the business has a revolving line of credit. 
 
 For the second research question:
 
-* From Table 4, we can observe that small businesses that create less amount of jobs generally have higher potential to default. 
-* Likewise, the more jobs retained by the company, the less likely the business will default. 
-* Almost all of the small business in this analysis are not involved in the LowDoc Loan Program. 
+* From Table 4, we can observe that small businesses that create fewer jobs are generally at a higher risk of default. 
+* On the other hand, companies are less likely to default when the number of jobs retained is high. 
+* Almost all of the small businesses in this analysis are not involved in the LowDoc Loan Program. 
 
 
-# __Potential Challenges__
-
- 
+## __Potential Challenges__
 
 The following are the challenges identified when performing EDA on the dataset. 
 
-1.	The first challenge is the exclusion of loan records values beyond the binary (Y/N) choices that were showing up within the variable. The reason for that was there was lack of information about what the different values represent. And so by applying restrictions to only include Y/N values, there is a potential loss of information. 
-2.	The second challenge is that there are variables that are in line with the outcome variable, balance gross, MIS status and charge off amount. These variables have to excluded from the analysis as they are all bi-variate outcomes. 
-3.	The data was too large causing inefficiency. 
-4.	Due to the data not being as clean as it should have been, it kind of resulted it to becoming deleted. If we had found an easier way rather than removing, the data would have been more consistent. 
-
+1.	The first challenge is the exclusion of loan record values beyond the binary (Y/N) choices that were showing up within binary variables. The reason for exclusion is that we lack information about what the different values represent. By retaining only Y/N values, we face the challenge of information loss. 
+2.	The second challenge is that a handful of variables are in line with the outcome variable, balance gross, MIS status, and charge-off amount. These variables have to be excluded from the analysis as they are all bi-variate outcomes. 
+3.	The dataset was too large, causing runtime inefficiency in R. 
+4.	Due to the uncleaned data, we had to remove empty values and data that did not make sense in context. If we could have talked to the original data collector, our analysis would likely be more comprehensive.
 
 \pagebreak
 
