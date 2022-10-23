@@ -1,0 +1,80 @@
+---
+title: "Small Business Load Statistical Analysis Plan"
+author: "Heather Qiu, Isha Singh, Jenny Shen, Aditya John"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE,warning = FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ISLR2)
+library(kableExtra)
+library(stargazer)
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(leaps)
+library(table1)
+```
+
+```{r readcsv, echo = FALSE, results = "asis", message = FALSE, warning = FALSE}
+##Read into the original dataset
+sbl <- read.csv('SBAnational.csv',header=T, na.strings=c(""," ","NA"))
+##Remove blank row or rows of binary variables that contain values other than yes and no
+sbl$NewExist[sbl$NewExist == 0] <- NA
+sbl$UrbanRural[sbl$UrbanRural == 0] <- NA
+sbl <- sbl[!is.na(sbl$RevLineCr) == TRUE ,]
+sbl <- sbl[!is.na(sbl$NewExist) == TRUE ,]
+sbl <- sbl[!is.na(sbl$UrbanRural) == TRUE ,]
+sbl <- sbl[!is.na(sbl$Name) == TRUE ,]
+sbl <- sbl[!is.na(sbl$City) == TRUE ,]
+sbl <- sbl[!is.na(sbl$State) == TRUE ,]
+sbl <- sbl[!is.na(sbl$Bank) == TRUE ,]
+sbl <- sbl[!is.na(sbl$BankState) == TRUE ,]
+sbl <- sbl[!is.na(sbl$LowDoc) == TRUE ,]
+sbl <- sbl[!is.na(sbl$DisbursementDate) == TRUE ,]
+sbl <- sbl[!is.na(sbl$DisbursementGross) == TRUE ,]
+sbl <- sbl[!is.na(sbl$MIS_Status) == TRUE ,]
+sbl <- subset(sbl, RevLineCr =="Y" | RevLineCr =="N")
+sbl <- subset(sbl, LowDoc =="Y" | LowDoc =="N")
+##Remove '$' sign and commas then convert to double in the money columns and store the values in new columns
+sbl$SBA_Appv_num <-str_replace_all(sbl$SBA_Appv,"[\\$,]","")%>% as.double()
+sbl$GrAppv_num <-str_replace_all(sbl$GrAppv,"[\\$,]","") %>% as.double()
+sbl$ChgOffPrinGr_num <-str_replace_all(sbl$ChgOffPrinGr,"[\\$,]","") %>% as.double()
+sbl$BalanceGross_num <-str_replace_all(sbl$BalanceGross,"[\\$,]","") %>% as.double()
+sbl$DisbursementGross_num <-str_replace_all(sbl$DisbursementGross,"[\\$,]","") %>% as.double()
+## Extract the year of disbursement from Disbursement Date
+sbl$Disbursement_Year <- year(as.Date(sbl$DisbursementDate,"%d-%b-%y"))
+##Factor Categorical Variables listed as numeric
+sbl$NewExist_fac <- factor(sbl$NewExist, levels = c("1","2"), 
+                        labels = c("Existing Business","New Business"))
+sbl$UrbanRural_fac <- factor(sbl$UrbanRural, levels = c("1","2"), 
+                        labels = c("Urban","Rural"))
+sbl$RevLineCr_fac <- as.factor(sbl$RevLineCr)
+```
+
+# __Overview__
+
+
+# __Models__
+```{r m, echo = TRUE, results = "asis", message = FALSE, warning = FALSE, fig.width=5,fig.height=4,fig.align='center'}
+```
+
+# __Variable Selection__
+```{r vs, echo = TRUE, results = "asis", message = FALSE, warning = FALSE, fig.width=5,fig.height=4,fig.align='center'}
+```
+
+# __Challenges__
+
+
+
+\pagebreak
+
+# __Appendix__
+```{r appendix2, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4,fig.align='center'}
+```
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
