@@ -73,7 +73,7 @@ sbl$RevLineCr_fac <- as.factor(sbl$RevLineCr)
 \pagebreak
 
 # __Appendix__
-```{r appendix2, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4,fig.align='center'}
+```{r appendix, echo = FALSE, results = "asis", message = FALSE, warning = FALSE, fig.width=8,fig.height=4,fig.align='center'}
 ```
 
 ```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
